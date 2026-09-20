@@ -1,31 +1,57 @@
+from fastapi import HTTPException, status
 from sqlmodel import Session
 
-from app.schemas.user import UserCreate
-from app.models.user import User  # noqa: F401 — used once you implement this
+from app.core.security import create_access_token, hash_password, verify_password
+from app.models.user import User
+from app.repositories.user_repository import UserRepository
+from app.schemas.user import Token, UserCreate, UserLogin
 
 
 def register_user(db: Session, payload: UserCreate) -> User:
-    """Register a new user.
+    """Register a new staff or supplier user.
 
-    Deliberately left as a TODO — not because it's hard, but because
-    grading rule 1 says no business logic before your Day 1-2 paper
-    artifacts (ERD, endpoint list, hard-problem writeup) are signed
-    off. This is plain CRUD and a good first service to write once
-    they are:
-
-      1. UserRepository(db).get_by_email(payload.email) — if a user
-         already exists, raise HTTPException(409, ...) (the shared
-         error shape in app/core/errors.py handles the rest).
-      2. hash_password(payload.password) from app.core.security —
-         never store the raw password.
-      3. Build a User(...) with the hash and role, save it via
-         UserRepository(db).create(...).
-      4. Return the saved User — the router's response_model=UserRead
-         takes care of dropping password_hash before it goes out.
-
-    One transaction per business action: UserRepository.create commits
-    once. Don't call db.commit() again in here — if you do, you no
-    longer have "one commit, rollback on any failure," you have two
-    commits that can each partially succeed.
+    Enforces business rules:
+      1. Duplicate check: email must be unique across all active users.
+         Raises 409 Conflict if already taken.
+      2. Security: Plaintext password is never persisted. We compute a
+         salted bcrypt hash before creating the record.
+      3. Persistence: Delegated to UserRepository which manages the commit.
     """
-    raise NotImplementedError("Write this once your Day 1-2 paper artifacts are signed off.")
+    user_repo = UserRepository(db)
+    existing_user = user_repo.get_by_email(payload.email)
+    if existing_user is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email already registered",
+        )
+
+    hashed_password = hash_password(payload.password)
+    new_user = User(
+        email=payload.email,
+        password_hash=hashed_password,
+        role=payload.role,
+    )
+    return user_repo.create(new_user)
+
+
+def authenticate_user(db: Session, payload: UserLogin) -> Token:
+    """Authenticate credentials and issue a signed JWT access token.
+
+    Enforces business rules:
+      1. Looks up the user by email.
+      2. Compares the plaintext password against the stored bcrypt hash.
+         Raises 401 Unauthorized on non-existent email or invalid password.
+         (Generic error message to avoid account enumeration attacks).
+      3. Embeds user email (`sub`) and role (`role`) in the token payload
+         so downstream requests can verify permissions without DB queries.
+    """
+    user_repo = UserRepository(db)
+    user = user_repo.get_by_email(payload.email)
+    if user is None or not verify_password(payload.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
+        )
+
+    access_token = create_access_token(subject=user.email, role=user.role.value)
+    return Token(access_token=access_token, token_type="bearer")

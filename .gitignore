@@ -9,3 +9,6 @@ venv/
 postgres_data/
 *.db
 .DS_Store
+.agents
+.agents/rules
+medistock-project-instructions.md

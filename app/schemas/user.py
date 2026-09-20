@@ -1,18 +1,18 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.models.user import UserRole
 
 
 class UserCreate(BaseModel):
-    """What the client sends to POST /auth/register. Separate from the
+    """What the client sends to POST /api/v1/auth/register. Separate from the
     User table model on purpose — the request has a plaintext
     `password`, the table has `password_hash`, and they should never be
     the same class.
     """
 
-    email: EmailStr
-    password: str
-    role: UserRole
+    email: EmailStr = Field(examples=["pharmacist@medistock.com"])
+    password: str = Field(min_length=8, examples=["SecurePass123!"])
+    role: UserRole = Field(examples=[UserRole.PHARMACIST])
 
 
 class UserRead(BaseModel):
@@ -25,5 +25,18 @@ class UserRead(BaseModel):
     email: EmailStr
     role: UserRole
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserLogin(BaseModel):
+    """Request body for POST /api/v1/auth/login."""
+
+    email: EmailStr = Field(examples=["pharmacist@medistock.com"])
+    password: str = Field(examples=["SecurePass123!"])
+
+
+class Token(BaseModel):
+    """Bearer token response returned by POST /api/v1/auth/login."""
+
+    access_token: str = Field(examples=["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."])
+    token_type: str = Field(default="bearer", examples=["bearer"])
