@@ -28,8 +28,8 @@ jobs:
 
       - name: Run Pytest suite
         env:
-          ENV: testing
-          SECRET_KEY: test-secret-key-32-chars-long-for-jwt-signing
-          DATABASE_URL: sqlite:///:memory:
+          ENV: "testing"
+          SECRET_KEY: "test-secret-key-32-chars-long-for-jwt-signing"
+          DATABASE_URL: "sqlite:///:memory:"
         run: |
           pytest
