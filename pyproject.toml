@@ -1,7 +1,7 @@
 [project]
 name = "medistock"
 version = "0.1.0"
-description = "Add your description here"
+description = "MediStock Backend - Community Pharmacy Inventory System"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
@@ -21,3 +21,8 @@ dependencies = [
     "sqlmodel==0.0.22",
     "uvicorn[standard]==0.30.6",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = "."
+asyncio_default_fixture_loop_scope = "function"

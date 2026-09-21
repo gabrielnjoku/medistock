@@ -22,3 +22,10 @@ Daily 5-liner — what I did / what broke / what I learned / what's next / who d
 - Learned: Direct bcrypt (`hashpw`/`checkpw`) avoids passlib wrapper bugs; dependency factory pattern keeps multi-role checks visible at router level.
 - Next: Day 4 core inventory models (products, batches with expiry index) and first two epics.
 - Who did what: Gabriel and Loveth paired on Router->Service->Repository layering, security dependencies, and acceptance criteria tests.
+
+## Day 4 — 2026-09-21
+- Did: Implemented Products and Batches SQLModel tables, Alembic migration 0002, repositories, services, routers, and 16 new pytest tests (26 total passing).
+- Broke: Missing email-validator dependency when running Pydantic EmailStr validation in fresh environment.
+- Learned: Indexing `expiry_date` on the `batches` table is critical for FEFO queries; Pydantic validation schemas guarantee 422 errors on negative stock input before reaching services.
+- Next: Day 5 Prescriptions & Dispenses epics and first viva checkpoint.
+- Who did what: Gabriel built products/batches models & migrations; Loveth built inventory and reports services/routers; both paired on unit testing.
