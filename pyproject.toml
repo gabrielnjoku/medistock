@@ -7,7 +7,7 @@ requires-python = ">=3.14"
 dependencies = [
     "alembic==1.13.2",
     "email-validator>=2.0.0",
-    "fastapi==0.115.0",
+    "fastapi[standard]==0.115.0",
     "google-cloud-firestore==2.19.0",
     "httpx==0.27.2",
     "passlib[bcrypt]==1.7.4",

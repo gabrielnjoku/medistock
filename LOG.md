@@ -29,3 +29,10 @@ Daily 5-liner — what I did / what broke / what I learned / what's next / who d
 - Learned: Indexing `expiry_date` on the `batches` table is critical for FEFO queries; Pydantic validation schemas guarantee 422 errors on negative stock input before reaching services.
 - Next: Day 5 Prescriptions & Dispenses epics and first viva checkpoint.
 - Who did what: Gabriel built products/batches models & migrations; Loveth built inventory and reports services/routers; both paired on unit testing.
+
+## Day 5 — 2026-09-22
+- Did: Implemented Prescriptions, PrescriptionLines, and StockMovements tables, Alembic migration 0003, services, routers, 11 new pytest tests (37 total passing), and completed Day 5 Viva.
+- Broke: Initial stock adjustment allowed negative inventory balances without raising a 422 error.
+- Learned: Validating balance bounds (`batch.qty_on_hand + delta >= 0`) inside single service transactions guarantees data integrity before persisting movement audit rows.
+- Next: Day 6 Webhook endpoint with signature verification & idempotency.
+- Who did what: Gabriel implemented prescriptions and stock movements; Loveth built stock adjustment services and test suite; both completed Day 5 Viva practice.

@@ -3,7 +3,7 @@ import uuid
 from fastapi import FastAPI, Request
 
 from app.core.errors import register_exception_handlers
-from app.routers import auth, health, inventory, products, reports
+from app.routers import auth, health, inventory, prescriptions, products, reports, stock
 
 app = FastAPI(title="MediStock", version="0.1.0")
 
@@ -28,3 +28,5 @@ app.include_router(auth.router)
 app.include_router(products.router)
 app.include_router(inventory.router)
 app.include_router(reports.router)
+app.include_router(prescriptions.router)
+app.include_router(stock.router)
