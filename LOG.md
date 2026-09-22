@@ -36,3 +36,10 @@ Daily 5-liner — what I did / what broke / what I learned / what's next / who d
 - Learned: Validating balance bounds (`batch.qty_on_hand + delta >= 0`) inside single service transactions guarantees data integrity before persisting movement audit rows.
 - Next: Day 6 Webhook endpoint with signature verification & idempotency.
 - Who did what: Gabriel implemented prescriptions and stock movements; Loveth built stock adjustment services and test suite; both completed Day 5 Viva practice.
+
+## Day 6 — 2026-09-23
+- Did: Implemented POST /api/v1/webhooks/deliveries, ProcessedEvents table, Alembic migration 0004, HMAC signature verification, deduplication, orphan logging, and 4 acceptance criteria tests (41 total passing).
+- Broke: Timing attack vulnerability when comparing raw HMAC signatures using standard equality `==`.
+- Learned: `hmac.compare_digest` prevents constant-time side-channel attacks; saving `event_id` in `processed_events` even for orphans ensures retry-safety without duplicated processing.
+- Next: Day 7 Swap-and-extend morning & SSE live stock-alert stream.
+- Who did what: Gabriel built webhook security & signature verification; Loveth built ProcessedEvents deduplication & test suite; both paired on background task offloading.

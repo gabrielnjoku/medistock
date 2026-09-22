@@ -1,5 +1,6 @@
 from app.models.batch import Batch
 from app.models.prescription import Prescription, PrescriptionLine
+from app.models.processed_event import ProcessedEvent
 from app.models.product import Product
 from app.models.stock_movement import StockMovement
 from app.models.user import User, UserRole
@@ -12,4 +13,5 @@ __all__ = [
     "Prescription",
     "PrescriptionLine",
     "StockMovement",
+    "ProcessedEvent",
 ]

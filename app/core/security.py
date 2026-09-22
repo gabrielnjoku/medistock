@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta, timezone
-from typing import Any
+import hashlib
+import hmac
+from typing import Any, Optional
 
 import bcrypt
 from jose import jwt
@@ -42,3 +44,19 @@ def decode_access_token(token: str) -> dict[str, Any]:
     (get_current_user) is responsible for turning that into a 401.
     """
     return jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
+
+
+def compute_webhook_signature(raw_body: bytes, secret: str) -> str:
+    """Compute HMAC-SHA256 hex digest of raw request body using secret key."""
+    return hmac.new(secret.encode("utf-8"), raw_body, hashlib.sha256).hexdigest()
+
+
+def verify_webhook_signature(raw_body: bytes, signature_header: Optional[str], secret: str) -> bool:
+    """Verify X-Signature header using hmac.compare_digest to prevent timing attacks.
+    Returns True if valid, False otherwise.
+    """
+    if not signature_header:
+        return False
+    expected = signature_header.removeprefix("sha256=") if signature_header.startswith("sha256=") else signature_header
+    computed = compute_webhook_signature(raw_body, secret)
+    return hmac.compare_digest(expected.lower(), computed.lower())

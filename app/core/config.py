@@ -23,7 +23,8 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
-    WEBHOOK_SIGNING_SECRET: str = "change-me"
+    WEBHOOK_SECRET: str = "test-webhook-secret-key"
+    WEBHOOK_SIGNING_SECRET: str = "test-webhook-secret-key"
     SUPPLIER_BASIC_AUTH_USER: str = "supplier"
     SUPPLIER_BASIC_AUTH_PASSWORD: str = "change-me"
 
