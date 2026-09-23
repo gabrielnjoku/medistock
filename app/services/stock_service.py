@@ -2,6 +2,7 @@ from typing import List, Optional
 from fastapi import HTTPException, status
 from sqlmodel import Session
 
+from app.core.broadcaster import broadcaster
 from app.models.stock_movement import StockMovement
 from app.repositories.batch_repository import BatchRepository
 from app.repositories.stock_movement_repository import StockMovementRepository
@@ -19,6 +20,7 @@ def adjust_stock(db: Session, payload: StockAdjustCreate) -> StockMovementRead:
       3. Non-negative stock balance check: batch.qty_on_hand + delta >= 0.
          Raises 422 Unprocessable Entity if adjustment results in negative stock.
       4. Single transaction: Updates batch qty_on_hand and creates StockMovement record together.
+      5. Live alert stream: Publishes stock_change event to the broadcaster.
     """
     if payload.delta == 0:
         raise HTTPException(
@@ -52,6 +54,18 @@ def adjust_stock(db: Session, payload: StockAdjustCreate) -> StockMovementRead:
     )
     movement_repo = StockMovementRepository(db)
     created_movement = movement_repo.create(movement)
+
+    # Publish SSE alert event to active stream subscribers
+    broadcaster.publish({
+        "event": "stock_change",
+        "batch_id": payload.batch_id,
+        "product_id": batch.product_id,
+        "delta": payload.delta,
+        "qty_on_hand": new_qty,
+        "reason": payload.reason,
+        "timestamp": created_movement.created_at.isoformat() if created_movement.created_at else None,
+    })
+
     return StockMovementRead.model_validate(created_movement)
 
 

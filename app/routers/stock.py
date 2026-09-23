@@ -1,14 +1,56 @@
+import asyncio
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query, status
+from fastapi.responses import StreamingResponse
 from sqlmodel import Session
 
-from app.core.deps import get_db, require_role
+from app.core.broadcaster import broadcaster
+from app.core.deps import get_current_user, get_db, require_role
 from app.models.user import User, UserRole
 from app.schemas.stock_movement import StockAdjustCreate, StockMovementRead
 from app.services import stock_service
 
 router = APIRouter(prefix="/api/v1/stock", tags=["stock"])
+
+
+@router.get(
+    "/alerts/stream",
+    summary="Subscribe to live SSE stock alert stream",
+    description="Publishes Server-Sent Events (SSE) for stock state changes with a 15-second heartbeat.",
+    responses={
+        200: {"description": "Connected to SSE stock alert stream", "content": {"text/event-stream": {}}},
+        401: {"description": "Not authenticated or token invalid"},
+    },
+)
+async def stream_stock_alerts(
+    current_user: User = Depends(get_current_user),
+) -> StreamingResponse:
+    """Streams real-time stock state change notifications over SSE with 15s heartbeats."""
+
+    async def event_generator():
+        queue = broadcaster.subscribe()
+        try:
+            while True:
+                try:
+                    data = await asyncio.wait_for(queue.get(), timeout=15.0)
+                    yield f"data: {data}\n\n"
+                except asyncio.TimeoutError:
+                    yield ": heartbeat\n\n"
+        except (asyncio.CancelledError, GeneratorExit):
+            pass
+        finally:
+            broadcaster.unsubscribe(queue)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @router.post(

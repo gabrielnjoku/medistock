@@ -3,6 +3,7 @@ from typing import Optional, Tuple
 from fastapi import BackgroundTasks, HTTPException, status
 from sqlmodel import Session
 
+from app.core.broadcaster import broadcaster
 from app.core.config import get_settings
 from app.core.security import verify_webhook_signature
 from app.models.batch import Batch
@@ -112,7 +113,18 @@ def process_delivery_webhook(
             reason=f"Supplier delivery {payload.reference}",
             ref=payload.reference,
         )
-        movement_repo.create(movement)
+        created_movement = movement_repo.create(movement)
+
+        # Publish SSE alert event to active stream subscribers
+        broadcaster.publish({
+            "event": "stock_change",
+            "batch_id": target_batch_id,
+            "product_id": item.product_id,
+            "delta": item.qty,
+            "qty_on_hand": existing_batch.qty_on_hand if existing_batch else item.qty,
+            "reason": f"Supplier delivery {payload.reference}",
+            "timestamp": created_movement.created_at.isoformat() if created_movement.created_at else None,
+        })
 
     # 5. Offload heavy tasks to BackgroundTasks
     background_tasks.add_task(_dummy_background_notification, payload.event_id)
