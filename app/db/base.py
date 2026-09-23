@@ -7,6 +7,8 @@ know that table exists.
 from sqlmodel import SQLModel  # noqa: F401
 
 from app.models.batch import Batch  # noqa: F401
+from app.models.dispense import Dispense, DispenseLine  # noqa: F401
+from app.models.idempotency_key import IdempotencyKey  # noqa: F401
 from app.models.prescription import Prescription, PrescriptionLine  # noqa: F401
 from app.models.processed_event import ProcessedEvent  # noqa: F401
 from app.models.product import Product  # noqa: F401

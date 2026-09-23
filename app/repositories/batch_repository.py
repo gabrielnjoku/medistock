@@ -39,3 +39,21 @@ class BatchRepository:
             .order_by(Batch.expiry_date.asc())
         )
         return list(self.db.exec(statement).all())
+
+    def get_available_fefo_batches_with_lock(self, product_id: int, current_date: date) -> List[Batch]:
+        """Fetch non-expired batches for a product with row-level locking (SELECT ... FOR UPDATE).
+
+        Ordered deterministically by expiry_date ASC, id ASC to enforce FEFO dispatch
+        and prevent deadlock during concurrent lock acquisition.
+        """
+        statement = (
+            select(Batch)
+            .where(
+                Batch.product_id == product_id,
+                Batch.expiry_date >= current_date,
+                Batch.qty_on_hand > 0,
+            )
+            .order_by(Batch.expiry_date.asc(), Batch.id.asc())
+            .with_for_update()
+        )
+        return list(self.db.exec(statement).all())
