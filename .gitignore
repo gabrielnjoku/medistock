@@ -12,3 +12,5 @@ postgres_data/
 .agents
 .agents/rules
 medistock-project-instructions.md
+tests/
+
