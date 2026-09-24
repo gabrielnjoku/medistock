@@ -71,6 +71,17 @@ def adjust_stock(db: Session, payload: StockAdjustCreate) -> StockMovementRead:
     invalidate_cache_pattern("cache:inventory:*")
     invalidate_cache_pattern("cache:reports:near-expiry:*")
 
+    # Log movement event to Firestore timeline
+    from app.core.firestore import get_firestore_client
+    get_firestore_client().log_stock_event(
+        product_id=batch.product_id,
+        batch_id=payload.batch_id,
+        qty_change=payload.delta,
+        reason=payload.reason,
+        performed_by="system",
+        metadata={"ref": payload.ref},
+    )
+
     return StockMovementRead.model_validate(created_movement)
 
 

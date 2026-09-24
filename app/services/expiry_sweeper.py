@@ -36,5 +36,9 @@ def sweep_near_expiry_alerts(db: Session, days: int = 30) -> List[Dict]:
         alerts_generated.append(alert_payload)
         broadcaster.publish(alert_payload)
 
+    # Refresh Firestore expiry_alerts collection
+    from app.core.firestore import get_firestore_client
+    get_firestore_client().refresh_expiry_alerts(alerts_generated)
+
     logger.info(f"Expiry sweeper completed: {len(alerts_generated)} near-expiry alerts refreshed.")
     return alerts_generated

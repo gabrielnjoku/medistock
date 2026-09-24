@@ -196,8 +196,19 @@ def dispense_prescription(
     db.refresh(dispense)
 
     # 6. Publish SSE notifications & invalidate cached hot reads
+    from app.core.firestore import get_firestore_client
+    firestore_client = get_firestore_client()
+
     for event in events_to_publish:
         broadcaster.publish(event)
+        firestore_client.log_stock_event(
+            product_id=event["product_id"],
+            batch_id=event["batch_id"],
+            qty_change=event["delta"],
+            reason=event["reason"],
+            performed_by=f"pharmacist_{pharmacist_id}",
+            metadata={"dispense_id": dispense.id, "prescription_id": rx.id},
+        )
 
     invalidate_cache_pattern("cache:inventory:*")
     invalidate_cache_pattern("cache:reports:near-expiry:*")

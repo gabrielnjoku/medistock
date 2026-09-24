@@ -127,6 +127,17 @@ def process_delivery_webhook(
             "timestamp": created_movement.created_at.isoformat() if created_movement.created_at else None,
         })
 
+        # Log movement event to Firestore timeline
+        from app.core.firestore import get_firestore_client
+        get_firestore_client().log_stock_event(
+            product_id=item.product_id,
+            batch_id=target_batch_id,
+            qty_change=item.qty,
+            reason=f"Supplier delivery {payload.reference}",
+            performed_by="supplier_webhook",
+            metadata={"event_id": payload.event_id, "reference": payload.reference},
+        )
+
     # Invalidate cached hot reads on delivery webhook
     invalidate_cache_pattern("cache:inventory:*")
     invalidate_cache_pattern("cache:reports:near-expiry:*")

@@ -95,3 +95,39 @@ def get_stock_movements(
 ) -> List[StockMovementRead]:
     """Thin route handler: validates manager auth, delegates retrieval to stock_service."""
     return stock_service.get_stock_movements(db, batch_id=batch_id, limit=limit, offset=offset)
+
+
+@router.get(
+    "/events",
+    summary="Get Firestore stock movement timeline events",
+    description="Retrieves high-frequency stock movement timeline documents stored in Firestore.",
+    responses={
+        200: {"description": "List of stock movement events from Firestore"},
+        401: {"description": "Not authenticated"},
+    },
+)
+def get_firestore_stock_events(
+    product_id: Optional[int] = Query(default=None, description="Optional product filter"),
+    limit: int = Query(default=50, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
+) -> List[dict]:
+    """Retrieves stock_events collection from Firestore."""
+    from app.core.firestore import get_firestore_client
+    return get_firestore_client().get_stock_events(product_id=product_id, limit=limit)
+
+
+@router.get(
+    "/expiry-alerts",
+    summary="Get Firestore near-expiry alert documents",
+    description="Retrieves active near-expiry feed documents refreshed in Firestore by the daily sweeper.",
+    responses={
+        200: {"description": "List of near-expiry alert documents from Firestore"},
+        401: {"description": "Not authenticated"},
+    },
+)
+def get_firestore_expiry_alerts(
+    current_user: User = Depends(get_current_user),
+) -> List[dict]:
+    """Retrieves expiry_alerts document feed from Firestore."""
+    from app.core.firestore import get_firestore_client
+    return get_firestore_client().get_expiry_alerts()

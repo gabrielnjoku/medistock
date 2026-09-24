@@ -1,6 +1,7 @@
 import uuid
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 
@@ -24,6 +25,19 @@ def register_exception_handlers(app: FastAPI) -> None:
             status_code=exc.status_code,
             content=_error_body(code=str(exc.status_code), message=str(exc.detail), request_id=request_id),
             headers=exc.headers,
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        request_id = getattr(request.state, "request_id", str(uuid.uuid4()))
+        errors = exc.errors()
+        msg = errors[0].get("msg", "Validation error") if errors else "Validation error"
+        if errors and "loc" in errors[0]:
+            field = " -> ".join(str(loc) for loc in errors[0]["loc"] if str(loc) != "body")
+            msg = f"Validation error for '{field}': {msg}" if field else f"Validation error: {msg}"
+        return JSONResponse(
+            status_code=422,
+            content=_error_body(code="422", message=msg, request_id=request_id),
         )
 
     @app.exception_handler(Exception)

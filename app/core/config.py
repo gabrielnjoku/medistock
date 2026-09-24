@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     WEBHOOK_SIGNING_SECRET: str = "test-webhook-secret-key"
     SUPPLIER_BASIC_AUTH_USER: str = "supplier"
     SUPPLIER_BASIC_AUTH_PASSWORD: str = "change-me"
+    FIRESTORE_PROJECT_ID: str = "medistock-dev"
 
 
 @lru_cache
