@@ -1,6 +1,5 @@
-import uuid
-
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.errors import register_exception_handlers
 from app.core.middleware import RequestTimingMiddleware
@@ -8,6 +7,14 @@ from app.routers import auth, dispenses, health, inventory, prescriptions, produ
 
 app = FastAPI(title="MediStock", version="0.1.0")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["X-Request-ID", "X-Response-Time", "Retry-After"],
+)
 register_exception_handlers(app)
 app.add_middleware(RequestTimingMiddleware)
 

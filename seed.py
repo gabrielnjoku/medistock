@@ -17,20 +17,16 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger("medistock.seed")
 
 
+from app.db.session import engine
+
+
 def get_seed_engine():
-    settings = get_settings()
-    db_url = os.getenv("DATABASE_URL", settings.DATABASE_URL)
-    # Check if 'postgres' docker host is unreachable when running outside docker
-    if "postgres:5432" in db_url:
-        db_url_localhost = db_url.replace("postgres:5432", "localhost:5432")
-        try:
-            test_eng = create_engine(db_url_localhost, connect_args={"connect_timeout": 2})
-            with test_eng.connect():
-                return test_eng
-        except Exception:
-            logger.info("Local Postgres unavailable. Using SQLite 'sqlite:///medistock_dev.db' for seed script.")
-            return create_engine("sqlite:///medistock_dev.db")
-    return create_engine(db_url)
+    try:
+        with engine.connect():
+            return engine
+    except Exception as exc:
+        logger.info(f"Postgres engine connection error: {exc}. Using SQLite fallback.")
+        return create_engine("sqlite:///medistock_dev.db")
 
 
 def seed_database() -> None:
