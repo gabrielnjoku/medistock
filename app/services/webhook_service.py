@@ -4,6 +4,7 @@ from fastapi import BackgroundTasks, HTTPException, status
 from sqlmodel import Session
 
 from app.core.broadcaster import broadcaster
+from app.core.cache import invalidate_cache_pattern
 from app.core.config import get_settings
 from app.core.security import verify_webhook_signature
 from app.models.batch import Batch
@@ -125,6 +126,10 @@ def process_delivery_webhook(
             "reason": f"Supplier delivery {payload.reference}",
             "timestamp": created_movement.created_at.isoformat() if created_movement.created_at else None,
         })
+
+    # Invalidate cached hot reads on delivery webhook
+    invalidate_cache_pattern("cache:inventory:*")
+    invalidate_cache_pattern("cache:reports:near-expiry:*")
 
     # 5. Offload heavy tasks to BackgroundTasks
     background_tasks.add_task(_dummy_background_notification, payload.event_id)

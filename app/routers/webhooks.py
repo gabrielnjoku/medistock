@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 from sqlmodel import Session
 
 from app.core.deps import get_db
+from app.core.rate_limiter import RateLimiter
 from app.schemas.webhook import DeliveryWebhookPayload, WebhookResponse
 from app.services import webhook_service
 
@@ -21,10 +22,12 @@ router = APIRouter(prefix="/api/v1/webhooks", tags=["webhooks"])
         "Machine-to-machine endpoint (no JWT auth). Authenticates caller via HMAC-SHA256 "
         "X-Signature header. Deduplicates by event_id in processed_events table."
     ),
+    dependencies=[Depends(RateLimiter(key_prefix="webhooks", requests_limit=60, window_seconds=60))],
     responses={
         200: {"description": "Duplicate ignored or orphan logged"},
         201: {"description": "Delivery successfully processed and stock updated"},
         401: {"description": "Invalid or missing X-Signature header"},
+        429: {"description": "Rate limit exceeded (too many webhook requests)"},
         422: {"description": "Validation error on payload format"},
     },
 )

@@ -6,6 +6,7 @@ from fastapi import HTTPException, status
 from sqlmodel import Session
 
 from app.core.broadcaster import broadcaster
+from app.core.cache import invalidate_cache_pattern
 from app.models.dispense import Dispense, DispenseLine
 from app.models.idempotency_key import IdempotencyKey
 from app.models.stock_movement import StockMovement
@@ -194,8 +195,11 @@ def dispense_prescription(
     db.commit()
     db.refresh(dispense)
 
-    # 6. Publish SSE notifications to stream subscribers
+    # 6. Publish SSE notifications & invalidate cached hot reads
     for event in events_to_publish:
         broadcaster.publish(event)
+
+    invalidate_cache_pattern("cache:inventory:*")
+    invalidate_cache_pattern("cache:reports:near-expiry:*")
 
     return dispense_read

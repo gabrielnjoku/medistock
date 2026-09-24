@@ -3,6 +3,7 @@ from fastapi import HTTPException, status
 from sqlmodel import Session
 
 from app.core.broadcaster import broadcaster
+from app.core.cache import invalidate_cache_pattern
 from app.models.stock_movement import StockMovement
 from app.repositories.batch_repository import BatchRepository
 from app.repositories.stock_movement_repository import StockMovementRepository
@@ -65,6 +66,10 @@ def adjust_stock(db: Session, payload: StockAdjustCreate) -> StockMovementRead:
         "reason": payload.reason,
         "timestamp": created_movement.created_at.isoformat() if created_movement.created_at else None,
     })
+
+    # Invalidate cached hot reads on stock update
+    invalidate_cache_pattern("cache:inventory:*")
+    invalidate_cache_pattern("cache:reports:near-expiry:*")
 
     return StockMovementRead.model_validate(created_movement)
 

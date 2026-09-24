@@ -1,8 +1,10 @@
+import json
 from typing import List
 
 from fastapi import APIRouter, Depends, Query, status
 from sqlmodel import Session
 
+from app.core.cache import get_cache, set_cache
 from app.core.deps import get_db, require_role
 from app.models.user import User, UserRole
 from app.schemas.report import LowStockReportItem, NearExpiryReportItem
@@ -46,5 +48,14 @@ def get_near_expiry_report(
     current_user: User = Depends(require_role(UserRole.MANAGER)),
     db: Session = Depends(get_db),
 ) -> List[NearExpiryReportItem]:
-    """Thin route handler: validates manager auth, delegates to report_service."""
-    return report_service.get_near_expiry_report(db, days=days)
+    """Thin route handler: checks Redis hot-read cache first, delegates to report_service on cache miss."""
+    cache_key = f"cache:reports:near-expiry:days={days}"
+    cached_val = get_cache(cache_key)
+    if cached_val is not None:
+        raw_items = json.loads(cached_val)
+        return [NearExpiryReportItem.model_validate(item) for item in raw_items]
+
+    result = report_service.get_near_expiry_report(db, days=days)
+    json_str = json.dumps([item.model_dump() for item in result], default=str)
+    set_cache(cache_key, json_str, expire_seconds=300)
+    return result

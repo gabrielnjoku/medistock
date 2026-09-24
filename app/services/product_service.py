@@ -1,6 +1,7 @@
 from fastapi import HTTPException, status
 from sqlmodel import Session
 
+from app.core.cache import invalidate_cache_pattern
 from app.models.batch import Batch
 from app.models.product import Product
 from app.repositories.batch_repository import BatchRepository
@@ -16,6 +17,7 @@ def create_product(db: Session, payload: ProductCreate) -> ProductRead:
       1. Duplicate check: (name, strength) must be unique.
          Raises 409 Conflict if already exists.
       2. Persistence delegated to ProductRepository.
+      3. Invalidation: Clears cached inventory reads.
     """
     product_repo = ProductRepository(db)
     existing_product = product_repo.get_by_name_and_strength(payload.name, payload.strength)
@@ -27,6 +29,7 @@ def create_product(db: Session, payload: ProductCreate) -> ProductRead:
 
     product = Product(name=payload.name, strength=payload.strength)
     created_product = product_repo.create(product)
+    invalidate_cache_pattern("cache:inventory:*")
     return ProductRead.model_validate(created_product)
 
 
@@ -39,6 +42,7 @@ def add_batch_to_product(db: Session, product_id: int, payload: BatchCreate) -> 
       2. Duplicate batch check: (product_id, batch_no) must be unique.
          Raises 409 Conflict if batch number already exists for product.
       3. Persistence delegated to BatchRepository.
+      4. Invalidation: Clears cached inventory and near-expiry report reads.
     """
     product_repo = ProductRepository(db)
     product = product_repo.get_by_id(product_id)
@@ -64,4 +68,6 @@ def add_batch_to_product(db: Session, product_id: int, payload: BatchCreate) -> 
         cost=payload.cost,
     )
     created_batch = batch_repo.create(batch)
+    invalidate_cache_pattern("cache:inventory:*")
+    invalidate_cache_pattern("cache:reports:near-expiry:*")
     return BatchRead.model_validate(created_batch)

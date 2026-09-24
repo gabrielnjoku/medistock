@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, status
 from sqlmodel import Session
 
 from app.core.deps import get_db, require_role
+from app.core.rate_limiter import RateLimiter
 from app.models.user import User, UserRole
 from app.schemas.user import Token, UserCreate, UserLogin, UserRead
 from app.services import auth_service
@@ -42,8 +43,10 @@ def register(
     status_code=status.HTTP_200_OK,
     summary="User login and JWT token issuance",
     description="Public endpoint. Verifies email and password, returning a signed JWT access token.",
+    dependencies=[Depends(RateLimiter(key_prefix="login", requests_limit=5, window_seconds=60))],
     responses={
         401: {"description": "Invalid email or password"},
+        429: {"description": "Rate limit exceeded (too many login attempts)"},
         422: {"description": "Validation error on request body"},
     },
 )
